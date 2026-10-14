@@ -1,0 +1,41 @@
+name: PeakGear Windows dry run
+
+on:
+  push:
+    branches: [codex/peakgear-windows-dry-run]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    if: github.repository == 'filanovskiy/adb'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Offline regression tests on Windows
+        shell: powershell
+        run: python -B -m unittest discover -s ai-over-lakehouse/documentation/tests -v
+      - name: Windows PowerShell 5.1 syntax and routing
+        shell: powershell
+        run: ./ai-over-lakehouse/documentation/tests/test_windows_scripts.ps1
+      - name: PowerShell 7 syntax and routing
+        shell: pwsh
+        run: ./ai-over-lakehouse/documentation/tests/test_windows_scripts.ps1
+      - name: Downloaded ZIP setup and OS credential store
+        shell: powershell
+        run: ./ai-over-lakehouse/documentation/tests/windows_dry_run.ps1
+      - name: Upload sanitized dry-run report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: peakgear-windows-dry-run
+          path: ${{ runner.temp }}/peakgear-windows-report.json
+          if-no-files-found: warn
