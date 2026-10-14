@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
 import queue
+import re
 import subprocess
 import threading
 import time
@@ -90,7 +91,8 @@ def main():
                 assert required <= tools, f'Missing registered tools: {sorted(required - tools)}'
                 print(f'PASS native stdio initialization and {len(tools)} registered tools; no database calls')
                 status = manage('Status')
-                assert 'sessions: 1' in status
+                count = re.search(r'LiveLab processes: (\d+)', status)
+                assert count and int(count[1]) >= 1
                 manage('Refresh')
                 assert args.project_config.read_text(encoding='utf-8') == original
                 manage(stop_action)
@@ -98,7 +100,7 @@ def main():
                 assert unrelated.poll() is None, 'Scoped cleanup killed the unrelated process.'
                 assert args.project_config.read_text(encoding='utf-8') == original
                 print(f'PASS real Windows {stop_action} and preservation of unrelated processes/config')
-        assert 'sessions: 0' in manage('Status')
+        assert 'processes: 0' in manage('Status')
     finally:
         if child and child.poll() is None:
             child.terminate()
